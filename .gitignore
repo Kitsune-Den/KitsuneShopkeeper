@@ -1,0 +1,11 @@
+# Build output
+bin/
+obj/
+
+# Release packaging (zips go on GitHub releases / Nexus, not in the repo)
+dist/
+
+# IDE
+.idea/
+.vs/
+*.user
