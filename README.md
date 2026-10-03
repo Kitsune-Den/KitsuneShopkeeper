@@ -11,6 +11,18 @@ settings carry over.
 Built and load-tested against game build **22936874** (Steam, 24 Apr 2026),
 Unity 2021.3.38, BepInEx 5.4.23.5.
 
+## Installing
+
+Requires **BepInEx 5.4.23.5 or newer** (5.x, not 6). Older 5.4 versions are known
+to fail on the current game: on 5.4.23.2 a player's mods loaded without errors and
+then none of them worked, and updating BepInEx was the whole fix. To update, extract
+`BepInEx_win_x64_5.4.23.5.zip` from the
+[BepInEx releases](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.5) into
+the game folder and replace files when asked. Your plugins and configs are not touched.
+
+Then extract the Kitsune Shopkeeper zip into the game folder (the one with
+`Card Shop Simulator.exe`). You should end up with `BepInEx/plugins/KitsunePricer.dll`.
+
 ## What it does
 
 Prices your stock off the day's market value, with a markup you choose and
