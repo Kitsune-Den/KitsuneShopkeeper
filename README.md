@@ -262,3 +262,10 @@ any hotkey or day rollover involved.
 
 **Not yet exercised: the trade guard.** It patches cleanly and is registered, but no
 overpriced offer has been made to trigger it in play.
+
+## License
+
+Apache License 2.0, copyright 2026 AdaInTheLab. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+You can fork it, modify it and redistribute it. Keep the NOTICE file with anything
+you distribute, credit AdaInTheLab as the original author, and mark what you changed.
