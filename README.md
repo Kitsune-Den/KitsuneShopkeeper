@@ -8,7 +8,7 @@ Formerly **Kitsune Pricer**. The files keep that name (`KitsunePricer.dll`,
 `gg.goodtimes.kitsunepricer.cfg`), so upgrading is a straight overwrite and your
 settings carry over.
 
-Built and load-tested against game build **22936874** (Steam, 24 Apr 2026),
+Built and load-tested against game build **26358084** (Steam, 1 Nov 2026),
 Unity 2021.3.38, BepInEx 5.4.23.5.
 
 ## Installing
