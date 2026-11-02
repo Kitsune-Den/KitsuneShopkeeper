@@ -23,7 +23,7 @@ namespace KitsunePricer
         /// out all reporting 0.1.0, which made a user's log useless for telling us
         /// which one they were actually running.
         /// </summary>
-        public const string Version = "0.3.0";
+        public const string Version = "0.4.0";
 
         internal static Plugin Instance;
         internal static ManualLogSource Log;
