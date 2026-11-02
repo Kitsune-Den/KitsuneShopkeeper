@@ -8,7 +8,7 @@ Formerly **Kitsune Pricer**. The files keep that name (`KitsunePricer.dll`,
 `gg.goodtimes.kitsunepricer.cfg`), so upgrading is a straight overwrite and your
 settings carry over.
 
-Built and load-tested against game build **22936874** (Steam, 24 Apr 2026),
+Built and load-tested against game build **26358084** (Steam, 1 Nov 2026),
 Unity 2021.3.38, BepInEx 5.4.23.5.
 
 ## Installing
@@ -49,6 +49,24 @@ Plus some quality-of-life extras:
 - **Reduced wages** (off by default) — pay employees a percentage of their normal
   wage, down to 0% for free staff. Applies to wages billed from the next day end;
   bills already owed are unchanged. The hire screen shows the reduced rate.
+- **Stock on restock cards** — each card in the restock app shows how many of that
+  item you already own: on shelves, in boxes (loose or racked in the warehouse) and
+  paid for but not yet delivered. Counted from where stock physically sits, not the
+  game's running total, which never comes down when you open packs yourself.
+  The count is split into what's on your shop shelves, what's racked in the
+  warehouse and any loose boxes. Underneath, it shows how many boxes of that
+  card's size the stock is still packed in, so the 4 and 8 versions of a
+  product each count their own boxes.
+- **Restock Low** — a button in the restock app's top bar that puts boxes for
+  every item running low into the game's cart. You check the cart and pay as
+  usual; nothing is bought for you. "Low" is measured in warehouse rack slots:
+  a rack labelled for an item that fits 4 boxes and holds 1 gets 3 more, no
+  matter how full that 1 box is. Boxes already out in the shop (on the floor,
+  carried by you or a stocker, or still to be delivered) and boxes in the cart
+  fill slots too, so pressing it twice adds nothing the second time. Each rack
+  gets boxes of the size it holds. Only items with a labelled rack are
+  restocked, so turn on the game's lock item label setting if you want emptied
+  racks to count.
 
 Press **F8** in game for a settings panel covering every option below. Changes
 save to the config file straight away and take effect live.
@@ -242,6 +260,8 @@ Everything here can also be changed in game from the F8 settings panel.
 | Customers | `NoSmellyCustomers` | false |
 | Workers | `ReducedWages` | false |
 | Workers | `WagePercent` | 50 |
+| Restock | `ShowStockOnRestock` | true |
+| Restock | `RestockLowButton` | true |
 
 Avoid binding hotkeys to numpad keys. Typing numbers into a trade offer will
 otherwise trigger a repricing run.

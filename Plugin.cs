@@ -23,7 +23,7 @@ namespace KitsunePricer
         /// out all reporting 0.1.0, which made a user's log useless for telling us
         /// which one they were actually running.
         /// </summary>
-        public const string Version = "0.3.0";
+        public const string Version = "0.4.0";
 
         internal static Plugin Instance;
         internal static ManualLogSource Log;
@@ -95,6 +95,10 @@ namespace KitsunePricer
         // ---- Config: workers --------------------------------------------------
         internal static ConfigEntry<bool> ReducedWages;
         internal static ConfigEntry<float> WagePercent;
+
+        // ---- Config: restock --------------------------------------------------
+        internal static ConfigEntry<bool> ShowStockOnRestock;
+        internal static ConfigEntry<bool> RestockLowButton;
 
         internal static ConfigEntry<bool> DebugLogging;
 
@@ -266,6 +270,19 @@ namespace KitsunePricer
                     "Percent of normal wages paid while ReducedWages is on. 0 = employees work for free, " +
                     "100 = normal wages.",
                     new AcceptableValueRange<float>(0f, 100f)));
+
+            ShowStockOnRestock = Config.Bind("Restock", "ShowStockOnRestock", true,
+                "Show how many of each item you already own on its restock card: on shelves, in boxes " +
+                "(loose or racked) and paid for but not yet delivered, split into shop shelves, warehouse " +
+                "racks and loose boxes, plus how many boxes it is in. " +
+                "Updates when the card is shown.");
+            RestockLowButton = Config.Bind("Restock", "RestockLowButton", true,
+                "Add a 'Restock Low' button to the restock app. It puts one box into the game's cart for " +
+                "every empty slot in the warehouse racks labelled with an item, whatever is left in the " +
+                "boxes already there; you check the cart and pay yourself. Boxes not racked yet (on the " +
+                "floor, carried, or still to be delivered) and boxes in the cart fill slots too. Turn on " +
+                "the game's lock item label setting if emptied racks should still count. Shows the next " +
+                "time the app opens.");
 
             DebugLogging = Config.Bind("Misc", "DebugLogging", false,
                 "Verbose per-item logging. Leave off unless something looks wrong.");
