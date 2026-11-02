@@ -59,13 +59,14 @@ Plus some quality-of-life extras:
   product each count their own boxes.
 - **Restock Low** — a button in the restock app's top bar that puts boxes for
   every item running low into the game's cart. You check the cart and pay as
-  usual; nothing is bought for you. "Low" is measured against shelf space: by
-  default it aims for twice what an item's for-sale shelves hold (full shelves
-  plus the same again in reserve). Everything you own counts against that,
-  including boxes on the floor, carried by you or a stocker, racked, or already
-  in the cart, so pressing it twice adds nothing the second time. Big boxes are
-  used where unlocked. Only items with a labelled shelf are restocked, so turn
-  on the game's lock item label setting if you want sold-out shelves to count.
+  usual; nothing is bought for you. "Low" is measured in warehouse rack slots:
+  a rack labelled for an item that fits 4 boxes and holds 1 gets 3 more, no
+  matter how full that 1 box is. Boxes already out in the shop (on the floor,
+  carried by you or a stocker, or still to be delivered) and boxes in the cart
+  fill slots too, so pressing it twice adds nothing the second time. Each rack
+  gets boxes of the size it holds. Only items with a labelled rack are
+  restocked, so turn on the game's lock item label setting if you want emptied
+  racks to count.
 
 Press **F8** in game for a settings panel covering every option below. Changes
 save to the config file straight away and take effect live.
@@ -261,7 +262,6 @@ Everything here can also be changed in game from the F8 settings panel.
 | Workers | `WagePercent` | 50 |
 | Restock | `ShowStockOnRestock` | true |
 | Restock | `RestockLowButton` | true |
-| Restock | `RestockTargetShelves` | 2 |
 
 Avoid binding hotkeys to numpad keys. Typing numbers into a trade offer will
 otherwise trigger a repricing run.

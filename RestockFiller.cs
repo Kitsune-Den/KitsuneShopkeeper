@@ -13,18 +13,22 @@ namespace KitsunePricer
     /// A "Restock Low" button in the restock app that fills the game's own cart
     /// with boxes for every item running low. Checkout is left to the player.
     ///
-    /// Low is measured against shelf space. An item's target is the total
-    /// capacity of the for-sale shelf compartments labelled with it, times
-    /// RestockTargetShelves. Against that it counts the same physical stock the
-    /// restock cards show (StockCount): shelves, racked boxes, and loose boxes,
-    /// which covers boxes on the floor, in the player's or a stocker's hands, and
-    /// paid for but still waiting to spawn. Boxes already in the cart count too,
-    /// so pressing twice adds nothing the second time. The shortfall is rounded
-    /// up to whole boxes, big boxes preferred.
+    /// Low is measured in warehouse rack slots, counted in boxes. Each warehouse
+    /// compartment labelled with an item holds so many boxes of its size; every
+    /// empty slot is one box to order, however full or empty the boxes already
+    /// racked there are. A rack for 4 boxes holding 1 orders 3.
     ///
-    /// Only items with a labelled for-sale shelf are considered. A compartment
-    /// that sells out drops its label unless the game's lock item label setting
-    /// is on, and the item then drops out of the fill with it.
+    /// Boxes already out in the shop count against the empty slots, since they
+    /// are on their way to the rack: boxes on the floor, in the player's or a
+    /// stocker's hands, and paid for but still waiting to spawn. So do boxes in
+    /// the cart, so pressing twice adds nothing the second time. Empty boxes are
+    /// not counted. Slots are counted per box size, as a rack compartment takes
+    /// one size at a time, and only that size is bought for it; if that size is
+    /// not unlocked the slots are left alone.
+    ///
+    /// Only items with a labelled warehouse compartment are considered. A
+    /// compartment that empties drops its label unless the game's lock item
+    /// label setting is on, and the item then drops out of the fill with it.
     ///
     /// Boxes go in through RestockItemScreen.AddToCartForCheckout, the call the
     /// card's own add-to-cart dialog makes, so the cart total, badge and checkout
@@ -88,31 +92,27 @@ namespace KitsunePricer
 
             var data = CSingleton<InventoryBase>.Instance.m_StockItemData_SO.m_RestockDataList;
             var shown = ShownItemTypes(screen);
-            var capacity = ShelfCapacity();
-            if (capacity.Count == 0) return "No shelves";
+            var slots = EmptyRackSlots();
+            if (slots.Count == 0) return "No racks";
+            var loose = LooseBoxes();
 
-            float multiple = Plugin.RestockTargetShelves.Value;
-            var done = new HashSet<EItemType>();
+            var done = new HashSet<(EItemType, bool)>();
             int added = 0;
             bool full = false;
 
             // In restock list order, so the cart reads like the app does.
             for (int i = 0; i < data.Count; i++)
             {
-                var itemType = data[i].itemType;
-                if (!done.Add(itemType) || !shown.Contains(itemType)) continue;
-                if (!capacity.TryGetValue(itemType, out int shelfSpace)) continue;
+                var key = (data[i].itemType, data[i].isBigBox);
+                if (!shown.Contains(key.Item1) || !done.Add(key)) continue;
+                if (!slots.TryGetValue(key, out int empty)) continue;
 
-                int need = Mathf.CeilToInt(shelfSpace * multiple)
-                           - StockCount.Owned(itemType).Total - InCart(screen, data, itemType);
-                if (need <= 0) continue;
+                loose.TryGetValue(key, out int outInShop);
+                int boxes = empty - outInShop - InCart(screen, data, key);
+                if (boxes <= 0) continue;
 
-                int index = PickBox(data, itemType);
+                int index = PickBox(data, key);
                 if (index < 0) continue;
-
-                int perBox = RestockManager.GetMaxItemCountInBox(itemType, data[index].isBigBox);
-                if (perBox <= 0) continue;
-                int boxes = (need + perBox - 1) / perBox;
 
                 // A new cart line needs a free checkout row, or the checkout
                 // screen indexes past its list.
@@ -126,33 +126,74 @@ namespace KitsunePricer
                 screen.AddToCartForCheckout(index, boxes);
                 added += boxes;
                 if (Plugin.DebugLogging.Value)
-                    Plugin.Diag($"restock low: {itemType} target {Mathf.CeilToInt(shelfSpace * multiple)}, " +
-                                $"short {need}, +{boxes} x{perBox}");
+                    Plugin.Diag($"restock low: {key.Item1} {(key.Item2 ? "big" : "small")} boxes, " +
+                                $"{empty} empty slots, {outInShop} loose, +{boxes}");
             }
 
             if (added > 0) return "+" + added + (added == 1 ? " box" : " boxes") + (full ? ", cart full" : "");
             return full ? "Cart full" : "Nothing low";
         }
 
-        /// <summary>Shelf space per item over every labelled for-sale compartment.</summary>
-        private static Dictionary<EItemType, int> ShelfCapacity()
+        /// <summary>
+        /// Empty box slots per item and box size over every labelled warehouse
+        /// compartment. Item count on a rack compartment is its box count.
+        /// </summary>
+        private static Dictionary<(EItemType, bool), int> EmptyRackSlots()
         {
-            var capacity = new Dictionary<EItemType, int>();
-            foreach (var compartments in Pricer.ItemCompartmentLists())
+            var slots = new Dictionary<(EItemType, bool), int>();
+            var racks = RestockManager.GetWarehouseCompartmentList();
+            if (racks == null) return slots;
+
+            for (int i = 0; i < racks.Count; i++)
             {
-                for (int i = 0; i < compartments.Count; i++)
+                var rack = racks[i];
+                if (rack == null) continue;
+
+                var itemType = rack.GetItemType();
+                if (itemType == EItemType.None) continue;
+
+                bool bigBox = rack.GetIsBigBox();
+                var key = (itemType, bigBox);
+                slots.TryGetValue(key, out int sum);
+                slots[key] = sum + Mathf.Max(0, rack.GetMaxBoxCount(bigBox) - rack.GetItemCount());
+            }
+            return slots;
+        }
+
+        /// <summary>
+        /// Boxes with stock in them that are not on a rack yet, per item and box
+        /// size: on the floor, being carried, or paid for and waiting to spawn.
+        /// </summary>
+        private static Dictionary<(EItemType, bool), int> LooseBoxes()
+        {
+            var loose = new Dictionary<(EItemType, bool), int>();
+
+            void Add(EItemType itemType, bool bigBox, int boxes)
+            {
+                if (itemType == EItemType.None || boxes <= 0) return;
+                loose.TryGetValue((itemType, bigBox), out int sum);
+                loose[(itemType, bigBox)] = sum + boxes;
+            }
+
+            var boxList = CSingleton<RestockManager>.Instance.m_ItemPackagingBoxList;
+            if (boxList != null)
+            {
+                for (int i = 0; i < boxList.Count; i++)
                 {
-                    var c = compartments[i];
-                    if (c == null) continue;
-
-                    var itemType = c.GetItemType();
-                    if (itemType == EItemType.None) continue;
-
-                    capacity.TryGetValue(itemType, out int sum);
-                    capacity[itemType] = sum + c.GetMaxItemCount();
+                    var box = boxList[i];
+                    if (box == null || box.m_IsStored || box.m_ItemCompartment == null) continue;
+                    if (box.m_ItemCompartment.GetItemCount() > 0) Add(box.GetItemType(), box.m_IsBigBox, 1);
                 }
             }
-            return capacity;
+
+            var pendingIndex = CPlayerData.m_SpawnBoxRestockIndexWaitingList;
+            var pendingBoxes = CPlayerData.m_SpawnBoxItemCountWaitingList;
+            for (int i = 0; i < pendingIndex.Count && i < pendingBoxes.Count; i++)
+            {
+                var d = InventoryBase.GetRestockData(pendingIndex[i]);
+                Add(d.itemType, d.isBigBox, pendingBoxes[i]);
+            }
+            return loose;
         }
 
         private static HashSet<EItemType> ShownItemTypes(RestockItemScreen screen)
@@ -173,38 +214,31 @@ namespace KitsunePricer
             return shown;
         }
 
-        /// <summary>Items of this type already in the cart, over both box sizes.</summary>
-        private static int InCart(RestockItemScreen screen, List<RestockData> data, EItemType itemType)
+        /// <summary>Boxes of this item and size already in the cart.</summary>
+        private static int InCart(RestockItemScreen screen, List<RestockData> data, (EItemType, bool) key)
         {
-            int items = 0;
+            int boxes = 0;
             for (int i = 0; i < data.Count; i++)
-            {
-                if (data[i].itemType != itemType) continue;
-                int boxes = screen.GetBoxCountInCart(i);
-                if (boxes > 0) items += boxes * RestockManager.GetMaxItemCountInBox(itemType, data[i].isBigBox);
-            }
-            return items;
+                if (data[i].itemType == key.Item1 && data[i].isBigBox == key.Item2)
+                    boxes += Mathf.Max(0, screen.GetBoxCountInCart(i));
+            return boxes;
         }
 
         /// <summary>
-        /// The restock entry to buy from: unlocked, not hidden by the prologue,
-        /// big box first. -1 if the item cannot be bought yet.
+        /// The restock entry to buy from: this item in this box size, unlocked and
+        /// not hidden by the prologue. -1 if it cannot be bought yet.
         /// </summary>
-        private static int PickBox(List<RestockData> data, EItemType itemType)
+        private static int PickBox(List<RestockData> data, (EItemType, bool) key)
         {
             bool prologue = CSingleton<CGameManager>.Instance.m_IsPrologue;
-            int small = -1;
             for (int i = 0; i < data.Count; i++)
             {
                 var d = data[i];
-                if (d.itemType != itemType) continue;
+                if (d.itemType != key.Item1 || d.isBigBox != key.Item2) continue;
                 if (prologue && !d.prologueShow) continue;
-                if (!CPlayerData.GetIsItemLicenseUnlocked(i)) continue;
-
-                if (d.isBigBox) return i;
-                if (small < 0) small = i;
+                if (CPlayerData.GetIsItemLicenseUnlocked(i)) return i;
             }
-            return small;
+            return -1;
         }
 
         private static IEnumerator Flash(TextMeshProUGUI label, string message)
