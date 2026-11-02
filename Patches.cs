@@ -53,6 +53,9 @@ namespace KitsunePricer
             // Owned count on restock cards. Always applied, gated at runtime.
             Bind(harmony, typeof(RestockItemPanelUI), "Init", typeof(StockCount), nameof(StockCount.AfterInit));
 
+            // "Restock Low" button in the restock app. Always applied, gated at runtime.
+            Bind(harmony, typeof(RestockItemScreen), "Init", typeof(RestockFiller), nameof(RestockFiller.AfterInit));
+
             // DO NOT patch LightManager.Update.
             //
             // It was tried as a per-frame driver and it broke the game: the clock
@@ -63,7 +66,7 @@ namespace KitsunePricer
             // day transition down with it. The tick is driven instead by a component
             // attached to the light manager's GameObject, which needs no patching.
 
-            Plugin.Diag($"patches applied: {Applied}/12");
+            Plugin.Diag($"patches applied: {Applied}/13");
         }
 
         private static void Bind(Harmony harmony, Type target, string methodName, string postfixName)
