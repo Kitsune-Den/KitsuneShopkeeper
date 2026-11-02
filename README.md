@@ -49,6 +49,12 @@ Plus some quality-of-life extras:
 - **Reduced wages** (off by default) — pay employees a percentage of their normal
   wage, down to 0% for free staff. Applies to wages billed from the next day end;
   bills already owed are unchanged. The hire screen shows the reduced rate.
+- **Stock on restock cards** — each card in the restock app shows how many of that
+  item you already own: on shelves, in boxes (loose or racked in the warehouse) and
+  paid for but not yet delivered. Counted from where stock physically sits, not the
+  game's running total, which never comes down when you open packs yourself.
+  Underneath, it shows how many boxes of that card's size the stock is still
+  packed in, so the 4 and 8 versions of a product each count their own boxes.
 
 Press **F8** in game for a settings panel covering every option below. Changes
 save to the config file straight away and take effect live.
@@ -242,6 +248,7 @@ Everything here can also be changed in game from the F8 settings panel.
 | Customers | `NoSmellyCustomers` | false |
 | Workers | `ReducedWages` | false |
 | Workers | `WagePercent` | 50 |
+| Restock | `ShowStockOnRestock` | true |
 
 Avoid binding hotkeys to numpad keys. Typing numbers into a trade offer will
 otherwise trigger a repricing run.

@@ -96,6 +96,9 @@ namespace KitsunePricer
         internal static ConfigEntry<bool> ReducedWages;
         internal static ConfigEntry<float> WagePercent;
 
+        // ---- Config: restock --------------------------------------------------
+        internal static ConfigEntry<bool> ShowStockOnRestock;
+
         internal static ConfigEntry<bool> DebugLogging;
 
         private void Awake()
@@ -266,6 +269,11 @@ namespace KitsunePricer
                     "Percent of normal wages paid while ReducedWages is on. 0 = employees work for free, " +
                     "100 = normal wages.",
                     new AcceptableValueRange<float>(0f, 100f)));
+
+            ShowStockOnRestock = Config.Bind("Restock", "ShowStockOnRestock", true,
+                "Show how many of each item you already own on its restock card: on shelves, in boxes " +
+                "(loose or racked) and paid for but not yet delivered, plus how many boxes it is in. " +
+                "Updates when the card is shown.");
 
             DebugLogging = Config.Bind("Misc", "DebugLogging", false,
                 "Verbose per-item logging. Leave off unless something looks wrong.");

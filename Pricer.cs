@@ -166,7 +166,7 @@ namespace KitsunePricer
         /// TournamentPrizeShelf derives from it and lands in the same list; it is
         /// flagged not-for-sale, which the m_ItemNotForSale check already skips.
         /// </summary>
-        private static IEnumerable<List<ShelfCompartment>> ItemCompartmentLists()
+        internal static IEnumerable<List<ShelfCompartment>> ItemCompartmentLists()
         {
             var shelves = ShelfManager.GetShelfList();
             if (shelves != null)
