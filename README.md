@@ -64,9 +64,9 @@ Plus some quality-of-life extras:
   matter how full that 1 box is. Boxes already out in the shop (on the floor,
   carried by you or a stocker, or still to be delivered) and boxes in the cart
   fill slots too, so pressing it twice adds nothing the second time. Each rack
-  gets boxes of the size it holds. Only items with a labelled rack are
-  restocked, so turn on the game's lock item label setting if you want emptied
-  racks to count.
+  gets boxes of the size it holds. Only racks with a label are restocked. An
+  emptied rack keeps its label, so it still gets filled; right-click a rack to
+  clear its label and it's left alone.
 
 Press **F8** in game for a settings panel covering every option below. Changes
 save to the config file straight away and take effect live.

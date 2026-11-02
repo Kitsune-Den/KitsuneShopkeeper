@@ -26,9 +26,11 @@ namespace KitsunePricer
     /// one size at a time, and only that size is bought for it; if that size is
     /// not unlocked the slots are left alone.
     ///
-    /// Only items with a labelled warehouse compartment are considered. A
-    /// compartment that empties drops its label unless the game's lock item
-    /// label setting is on, and the item then drops out of the fill with it.
+    /// Only items with a labelled warehouse compartment are considered. The game
+    /// keeps a label when its compartment empties (CGameManager turns
+    /// m_LockItemLabel on at startup and nothing turns it off), so a label only
+    /// goes when the player right-clicks it away, and the item drops out of the
+    /// fill with it.
     ///
     /// Boxes go in through RestockItemScreen.AddToCartForCheckout, the call the
     /// card's own add-to-cart dialog makes, so the cart total, badge and checkout

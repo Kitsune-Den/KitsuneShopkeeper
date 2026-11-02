@@ -280,9 +280,8 @@ namespace KitsunePricer
                 "Add a 'Restock Low' button to the restock app. It puts one box into the game's cart for " +
                 "every empty slot in the warehouse racks labelled with an item, whatever is left in the " +
                 "boxes already there; you check the cart and pay yourself. Boxes not racked yet (on the " +
-                "floor, carried, or still to be delivered) and boxes in the cart fill slots too. Turn on " +
-                "the game's lock item label setting if emptied racks should still count. Shows the next " +
-                "time the app opens.");
+                "floor, carried, or still to be delivered) and boxes in the cart fill slots too. Racks " +
+                "whose label you clear are skipped. Shows the next time the app opens.");
 
             DebugLogging = Config.Bind("Misc", "DebugLogging", false,
                 "Verbose per-item logging. Leave off unless something looks wrong.");
