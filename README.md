@@ -53,8 +53,10 @@ Plus some quality-of-life extras:
   item you already own: on shelves, in boxes (loose or racked in the warehouse) and
   paid for but not yet delivered. Counted from where stock physically sits, not the
   game's running total, which never comes down when you open packs yourself.
-  Underneath, it shows how many boxes of that card's size the stock is still
-  packed in, so the 4 and 8 versions of a product each count their own boxes.
+  The count is split into what's on your shop shelves, what's racked in the
+  warehouse and any loose boxes. Underneath, it shows how many boxes of that
+  card's size the stock is still packed in, so the 4 and 8 versions of a
+  product each count their own boxes.
 
 Press **F8** in game for a settings panel covering every option below. Changes
 save to the config file straight away and take effect live.

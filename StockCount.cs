@@ -28,12 +28,15 @@ namespace KitsunePricer
     /// Items in a customer's basket, a worker's hands or a machine hopper are not
     /// counted.
     ///
-    /// Alongside the item total it counts the boxes that stock sits in (every
-    /// source above except the shelves), so the card shows both how much you
-    /// have and how much of it is still boxed up. A box counts once whatever its
-    /// fill; empty boxes are not counted. Boxes are counted per size, since the
-    /// same item is usually sold in a small and a big box on separate cards, and
-    /// each card shows only the boxes of its own size.
+    /// The card shows the count split by where it sits: on the shop floor for
+    /// sale, racked in the warehouse (live boxes flagged m_IsStored, plus the
+    /// records), and loose (unracked boxes on the floor or being carried, and
+    /// pending spawns, which land loose).
+    ///
+    /// It also counts the boxes that stock sits in. A box counts once whatever
+    /// its fill; empty boxes are not counted. Boxes are counted per size, since
+    /// the same item is usually sold in a small and a big box on separate cards,
+    /// and each card shows only the boxes of its own size.
     /// </summary>
     internal static class StockCount
     {
@@ -44,10 +47,19 @@ namespace KitsunePricer
 
         // One count per frame. Opening a category initialises every card in it in
         // the same frame, and the walk is the same for all of them.
-        private static readonly Dictionary<EItemType, int> _items = new Dictionary<EItemType, int>();
-        private static readonly Dictionary<EItemType, int> _smallBoxes = new Dictionary<EItemType, int>();
-        private static readonly Dictionary<EItemType, int> _bigBoxes = new Dictionary<EItemType, int>();
+        private static readonly Dictionary<EItemType, Tally> _tallies = new Dictionary<EItemType, Tally>();
         private static int _countedFrame = -1;
+
+        private enum Where { Shelf, Rack, Loose }
+
+        internal sealed class Tally
+        {
+            public int Shelf, Rack, Loose, SmallBoxes, BigBoxes;
+            public int Total => Shelf + Rack + Loose;
+            public int Boxes(bool bigBox) => bigBox ? BigBoxes : SmallBoxes;
+        }
+
+        private static readonly Tally Empty = new Tally();
 
         /// <summary>Harmony postfix on RestockItemPanelUI.Init.</summary>
         public static void AfterInit(RestockItemPanelUI __instance, int index, EItemType ___m_ItemType)
@@ -68,10 +80,13 @@ namespace KitsunePricer
                 if (label == null) return;
 
                 bool bigBox = InventoryBase.GetRestockData(index).isBigBox;
-                int owned = Owned(___m_ItemType, bigBox, out int boxes);
+                var t = Owned(___m_ItemType);
                 int perBox = RestockManager.GetMaxItemCountInBox(___m_ItemType, bigBox);
-                label.text = "In stock: " + owned + "\n<size=85%>Boxes of " + perBox + ": " + boxes + "</size>";
-                label.alpha = owned > 0 ? 1f : 0.55f;
+                // Comma separators: the game font may not carry a middle dot.
+                label.text = "Shelf " + t.Shelf + ", Warehouse " + t.Rack +
+                             (t.Loose > 0 ? ", Loose " + t.Loose : "") +
+                             "\n<size=85%>Boxes of " + perBox + ": " + t.Boxes(bigBox) + "</size>";
+                label.alpha = t.Total > 0 ? 1f : 0.55f;
                 label.gameObject.SetActive(true);
             }
             catch (Exception ex)
@@ -82,10 +97,9 @@ namespace KitsunePricer
             }
         }
 
-        internal static int Owned(EItemType itemType, bool bigBox, out int boxes)
+        internal static Tally Owned(EItemType itemType)
         {
-            boxes = 0;
-            if (itemType == EItemType.None) return 0;
+            if (itemType == EItemType.None) return Empty;
 
             if (_countedFrame != Time.frameCount)
             {
@@ -93,22 +107,19 @@ namespace KitsunePricer
                 _countedFrame = Time.frameCount;
             }
 
-            (bigBox ? _bigBoxes : _smallBoxes).TryGetValue(itemType, out boxes);
-            return _items.TryGetValue(itemType, out int n) ? n : 0;
+            return _tallies.TryGetValue(itemType, out var t) ? t : Empty;
         }
 
         private static void Recount()
         {
-            _items.Clear();
-            _smallBoxes.Clear();
-            _bigBoxes.Clear();
+            _tallies.Clear();
 
             foreach (var compartments in Pricer.ItemCompartmentLists())
             {
                 for (int i = 0; i < compartments.Count; i++)
                 {
                     var c = compartments[i];
-                    if (c != null) Add(c.GetItemType(), c.GetItemCount(), 0, false);
+                    if (c != null) Add(c.GetItemType(), c.GetItemCount(), Where.Shelf, 0, false);
                 }
             }
 
@@ -119,7 +130,8 @@ namespace KitsunePricer
                 {
                     var box = boxes[i];
                     if (box != null && box.m_ItemCompartment != null)
-                        Add(box.GetItemType(), box.m_ItemCompartment.GetItemCount(), 1, box.m_IsBigBox);
+                        Add(box.GetItemType(), box.m_ItemCompartment.GetItemCount(),
+                            box.m_IsStored ? Where.Rack : Where.Loose, 1, box.m_IsBigBox);
                 }
             }
 
@@ -133,7 +145,7 @@ namespace KitsunePricer
                     for (int r = 0; r < rack.GetStoredBoxRecordCount(); r++)
                     {
                         var record = rack.PeekStoredBoxRecord(r);
-                        Add(record.itemType, record.amount, 1, record.isBigBox);
+                        Add(record.itemType, record.amount, Where.Rack, 1, record.isBigBox);
                     }
                 }
             }
@@ -144,19 +156,24 @@ namespace KitsunePricer
             {
                 var data = InventoryBase.GetRestockData(pendingIndex[i]);
                 Add(data.itemType, pendingBoxes[i] * RestockManager.GetMaxItemCountInBox(data.itemType, data.isBigBox),
-                    pendingBoxes[i], data.isBigBox);
+                    Where.Loose, pendingBoxes[i], data.isBigBox);
             }
         }
 
-        private static void Add(EItemType itemType, int amount, int boxes, bool bigBox)
+        private static void Add(EItemType itemType, int amount, Where where, int boxes, bool bigBox)
         {
             if (itemType == EItemType.None || amount <= 0) return;
-            _items.TryGetValue(itemType, out int n);
-            _items[itemType] = n + amount;
-            if (boxes <= 0) return;
-            var sized = bigBox ? _bigBoxes : _smallBoxes;
-            sized.TryGetValue(itemType, out int b);
-            sized[itemType] = b + boxes;
+            if (!_tallies.TryGetValue(itemType, out var t)) _tallies[itemType] = t = new Tally();
+
+            switch (where)
+            {
+                case Where.Shelf: t.Shelf += amount; break;
+                case Where.Rack: t.Rack += amount; break;
+                default: t.Loose += amount; break;
+            }
+
+            if (bigBox) t.BigBoxes += boxes;
+            else t.SmallBoxes += boxes;
         }
 
         // ------------------------------------------------------------------ label

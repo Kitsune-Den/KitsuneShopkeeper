@@ -272,7 +272,8 @@ namespace KitsunePricer
 
             ShowStockOnRestock = Config.Bind("Restock", "ShowStockOnRestock", true,
                 "Show how many of each item you already own on its restock card: on shelves, in boxes " +
-                "(loose or racked) and paid for but not yet delivered, plus how many boxes it is in. " +
+                "(loose or racked) and paid for but not yet delivered, split into shop shelves, warehouse " +
+                "racks and loose boxes, plus how many boxes it is in. " +
                 "Updates when the card is shown.");
 
             DebugLogging = Config.Bind("Misc", "DebugLogging", false,
