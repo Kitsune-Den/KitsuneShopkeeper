@@ -221,11 +221,19 @@ namespace KitsunePricer
         /// made while the source is inactive and only switched on once cleaned up:
         /// the label's localisation component would otherwise put "Sort" back, and
         /// the copied click and controller events would open the sort screen.
+        ///
+        /// The board game app's bar has no Sort button. It does carry the main
+        /// app's category tabs, switched off, so the Booster Packs tab is copied
+        /// there instead.
         /// </summary>
         private static void CreateButton(RestockItemScreen screen, Transform bar)
         {
-            var sort = bar.Find("SortBtn") as RectTransform;
-            if (sort == null) return;
+            var sort = (bar.Find("SortBtn") ?? bar.Find("PackBtn")) as RectTransform;
+            if (sort == null)
+            {
+                Plugin.DiagOnce("restock-button-template", "restock low button: no button in the top bar to copy");
+                return;
+            }
 
             GameObject go;
             bool wasActive = sort.gameObject.activeSelf;
@@ -286,9 +294,6 @@ namespace KitsunePricer
         /// the tab sprites and logo carry a transparent margin. The clearance is
         /// measured on build 26358084 so the gap before the price matches the
         /// gaps between tabs.
-        ///
-        /// The button keeps the Sort button's height and narrows to fit; only if
-        /// that would leave it under half as wide does it shrink as a whole.
         /// </summary>
         private static void Place(RectTransform button, RectTransform sort, Transform bar)
         {
@@ -308,6 +313,12 @@ namespace KitsunePricer
             }
             tabs.Sort((a, b) => a.anchoredPosition.x.CompareTo(b.anchoredPosition.x));
 
+            if (tabs.Count == 0)
+            {
+                PlaceBeforePrice(button, sort, bar, cart, right, spacing);
+                return;
+            }
+
             var logo = bar.Find("Logo") as RectTransform;
             float cursor = logo != null && logo.gameObject.activeSelf && logo.anchorMin == logo.anchorMax
                 ? Edge(logo, 1)
@@ -320,18 +331,59 @@ namespace KitsunePricer
                 cursor = Edge(tab, 1) + spacing;
             }
 
-            float gap = right - cursor;
-            float scale = sort.localScale.x;
-            float width = Mathf.Min(sort.rect.width, gap / scale);
-            if (width < sort.rect.width * 0.5f)
+            Fit(button, sort, cursor, right, alignRight: false);
+        }
+
+        /// <summary>
+        /// For a bar with no tabs, such as the board game app's: the button sits
+        /// against the price and keeps clear of whatever is to its left. The title
+        /// there is a centred text in a box far wider than its words, so a text
+        /// counts by the width of what it says rather than by its rect.
+        /// </summary>
+        private static void PlaceBeforePrice(RectTransform button, RectTransform template, Transform bar,
+            RectTransform cart, float right, float spacing)
+        {
+            float left = float.MinValue;
+            foreach (Transform child in bar)
             {
-                width = sort.rect.width * 0.5f;
+                if (child == button || child == cart || !child.gameObject.activeSelf) continue;
+                if (!(child is RectTransform r) || r.anchorMin != r.anchorMax) continue;
+
+                float l = Edge(r, -1), rr = Edge(r, 1);
+                if (r.GetComponent<TextMeshProUGUI>() is TextMeshProUGUI text && text.text.Length > 0)
+                {
+                    float half = Mathf.Min(r.sizeDelta.x, text.preferredWidth) * r.localScale.x * 0.5f;
+                    l = r.anchoredPosition.x - half;
+                    rr = r.anchoredPosition.x + half;
+                }
+
+                if (l < right && rr > left) left = rr;
+            }
+
+            float cursor = left == float.MinValue ? right - template.rect.width * template.localScale.x : left + spacing;
+            Fit(button, template, cursor, right, alignRight: true);
+        }
+
+        /// <summary>
+        /// Sizes the button into [left, right]. It keeps the template's height and
+        /// narrows to fit; only if that would leave it under half as wide does it
+        /// shrink as a whole.
+        /// </summary>
+        private static void Fit(RectTransform button, RectTransform template, float left, float right, bool alignRight)
+        {
+            float gap = right - left;
+            float scale = template.localScale.x;
+            float width = Mathf.Min(template.rect.width, gap / scale);
+            if (width < template.rect.width * 0.5f)
+            {
+                width = template.rect.width * 0.5f;
                 scale = Mathf.Max(0.05f, gap / width);
             }
 
+            float half = width * scale * 0.5f;
             button.localScale = new Vector3(scale, scale, 1f);
-            button.sizeDelta = new Vector2(width, sort.sizeDelta.y);
-            button.anchoredPosition = new Vector2(cursor + width * scale * 0.5f, sort.anchoredPosition.y);
+            button.sizeDelta = new Vector2(width, template.sizeDelta.y);
+            button.anchoredPosition = new Vector2(alignRight ? right - half : left + half, template.anchoredPosition.y);
         }
 
         /// <summary>Left (-1) or right (1) edge of a centre-anchored rect in its parent's space.</summary>
